@@ -1,60 +1,41 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+//Arda
 
-function App() {
-  const [rows, setRows] = useState([]);
-  const [query, setQuery] = useState("");
+import React from "react";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
-  useEffect(() => {
-    axios.post("http://localhost:3306/finduser", { q: "" })
-      .then(res => setRows(res.data))
-      .catch(err => console.error("Erreur backend :", err));
-  }, []);
+import Navbar from "./header/Navbar";
+import Footer from "./header/Footer";
 
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setQuery(value);
+import HomePages from "./pages/HomePages";
+import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
+import History from "./pages/History";
+import Filter from "./pages/Filter";
+import Search from "./pages/Search";
 
-    axios.post("http://localhost:3306/finduser", { q: value })
-      .then(res => setRows(res.data))
-      .catch(err => console.error("Erreur recherche :", err));
-  };
+import { UserProvider } from "./context/UserContext";
 
+function App() {  
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Recherche dans la base</h1>
-
-      <input
-        type="text"
-        value={query}
-        onChange={handleSearch}
-        placeholder="Ex: PHI"
-        style={{ padding: "0.5rem", width: "300px" }}
-      />
-
-      <table border="1" cellPadding="5" style={{ marginTop: "1rem" }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Prénom</th>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Genre</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((u, idx) => (
-            <tr key={idx}>
-              <td>{u.id}</td>
-              <td>{u.first_name}</td>
-              <td>{u.last_name}</td>
-              <td>{u.email}</td>
-              <td>{u.gender}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <BrowserRouter>
+      <UserProvider>
+      <Navbar/>
+      <div>
+        <Routes>
+            <Route path='/' element={<HomePages/>} />
+          
+            <Route path='/Admin' element={<Admin/>} />
+            <Route path='/Filter' element={<Filter/>} />
+            <Route path='/History' element={<History/>} />
+          
+          
+            
+            <Route path='*' element={<NotFound/>} />
+        </Routes>
+      </div>
+      <Footer/>
+      </UserProvider>
+    </BrowserRouter>
   );
 }
 
