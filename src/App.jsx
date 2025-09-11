@@ -1,47 +1,38 @@
-import { useEffect, useState } from 'react';
-import { loadDatabaseFromCSV } from './db';
-import { searchPeople } from './utils/search';
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 function App() {
   const [rows, setRows] = useState([]);
-  const [query, setQuery] = useState('');
-  const [db, setDb] = useState(null);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
-    const load = async () => {
-      const database = await loadDatabaseFromCSV('/data/people.csv');
-      setDb(database);
-      const res = database.exec('SELECT * FROM people');
-      if (res.length > 0) {
-        setRows(res[0].values);
-      }
-    };
-    load();
+    axios.post("http://localhost:3306/finduser", { q: "" })
+      .then(res => setRows(res.data))
+      .catch(err => console.error("Erreur backend :", err));
   }, []);
 
   const handleSearch = (e) => {
-    const input = e.target.value;
-    setQuery(input);
+    const value = e.target.value;
+    setQuery(value);
 
-    if (db) {
-      const results = searchPeople(db, input);
-      setRows(results);
-    }
+    axios.post("http://localhost:3306/finduser", { q: value })
+      .then(res => setRows(res.data))
+      .catch(err => console.error("Erreur recherche :", err));
   };
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <h1>Recherche dans la base de personnes</h1>
+    <div style={{ padding: "2rem" }}>
+      <h1>Recherche dans la base</h1>
 
       <input
         type="text"
         value={query}
         onChange={handleSearch}
         placeholder="Ex: PHI"
-        style={{ padding: '0.5rem', width: '300px', fontSize: '1rem' }}
+        style={{ padding: "0.5rem", width: "300px" }}
       />
 
-      <table border="1" cellPadding="5" style={{ marginTop: '1rem' }}>
+      <table border="1" cellPadding="5" style={{ marginTop: "1rem" }}>
         <thead>
           <tr>
             <th>ID</th>
@@ -52,13 +43,13 @@ function App() {
           </tr>
         </thead>
         <tbody>
-          {rows.map(([id, first, last, email, gender]) => (
-            <tr key={id}>
-              <td>{id}</td>
-              <td>{first}</td>
-              <td>{last}</td>
-              <td>{email}</td>
-              <td>{gender}</td>
+          {rows.map((u, idx) => (
+            <tr key={idx}>
+              <td>{u.id}</td>
+              <td>{u.first_name}</td>
+              <td>{u.last_name}</td>
+              <td>{u.email}</td>
+              <td>{u.gender}</td>
             </tr>
           ))}
         </tbody>
