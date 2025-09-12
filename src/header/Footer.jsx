@@ -1,6 +1,4 @@
 import React from 'react';
-//import '../style/Home.css';
-
 
 function Footer() {
     return (
