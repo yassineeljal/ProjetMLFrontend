@@ -2,7 +2,7 @@ import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import logo from '../assets/logoMovie.png'; // ✅ Import correct de l'image
 import { Link } from 'react-router-dom';
-
+ 
 function Navbar2(props) {
     return (
         <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top py-3">
@@ -10,7 +10,7 @@ function Navbar2(props) {
         <Link to="/" className="navbar-brand">
           <img src={logo} alt="Logo" id="logo" style={{ height: "50px" }} />
         </Link>
-
+ 
         <button
           className="navbar-toggler"
           type="button"
@@ -22,7 +22,7 @@ function Navbar2(props) {
         >
           <span className="navbar-toggler-icon"></span>
         </button>
-
+ 
         <div className="collapse navbar-collapse" id="navbarNavDropdown">
           <ul className="navbar-nav ms-auto">
             <li className="nav-item">
@@ -30,6 +30,9 @@ function Navbar2(props) {
             </li>
             <li className="nav-item">
               <Link to="/Filter" className="nav-link">Filter</Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/Search" className="nav-link">Search</Link>
             </li>
             <li className="nav-item">
               <Link to="/Admin" className="nav-link">Admin</Link>
@@ -40,5 +43,5 @@ function Navbar2(props) {
 </nav>
     );
 }
-
+ 
 export default Navbar2;
