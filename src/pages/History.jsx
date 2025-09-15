@@ -1,11 +1,11 @@
 import React from 'react';
 
-function History(props) {
-    return (
-        <div>
-            <h1>History</h1>
-        </div>
-    );
+function History() {
+  return (
+    <div className="page">
+      <h1 className="page-title">History</h1>
+    </div>
+  );
 }
 
 export default History;
