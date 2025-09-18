@@ -25,6 +25,26 @@ function addToLocalPlaylist(serie) {
   } catch {}
 }
 
+function saveHistory(serie, action = "select") {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    const item = {
+      id: serie.id ?? null,
+      title: serie.title ?? "",
+      gender: serie.gender ?? "",
+      nbEpisodes: Number(serie.nbEpisodes ?? 0),
+      note: serie.note ?? "",
+      action,
+      ts: Date.now()
+    };
+    const last = arr[arr.length - 1];
+    const isDup = last && last.id === item.id && last.action === item.action;
+    const next = isDup ? arr : [...arr, item].slice(-MAX_HISTORY);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {}
+}
+
 export default function App() {
   const location = useLocation();
 
@@ -42,38 +62,25 @@ export default function App() {
   const [filterGenre, setFilterGenre] = useState("");
   const [filterMinEp, setFilterMinEp] = useState("");
 
-  function saveHistory(serie, action = "select") {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      const item = {
-        id: serie.id ?? null,
-        title: serie.title ?? "",
-        gender: serie.gender ?? "",
-        nbEpisodes: Number(serie.nbEpisodes ?? 0),
-        note: serie.note ?? "",
-        action,
-        ts: Date.now()
-      };
-      const last = arr[arr.length - 1];
-      const isDup = last && last.id === item.id && last.action === item.action;
-      const next = isDup ? arr : [...arr, item].slice(-MAX_HISTORY);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {}
-  }
-
   async function chercher(titreTape) {
     try {
-      const res = await axios.get(API);
-      const data = Array.isArray(res.data) ? res.data : [];
-      const t = titreTape.trim().toLowerCase();
-      let resultat = t === "" ? [] : data.filter((s) => (s.title || "").toLowerCase().includes(t));
+      const t = (titreTape || "").trim().toLowerCase();
+      const g = (filterGenre || "").trim();
+      const minEp = filterMinEp !== "" ? Number(filterMinEp) : null;
 
-      const g = filterGenre.trim().toLowerCase();
-      const minEp = filterMinEp === "" ? 0 : Number(filterMinEp);
-      if (g) resultat = resultat.filter((s) => (s.gender || "").toLowerCase().includes(g));
-      if (!Number.isNaN(minEp) && minEp > 0) resultat = resultat.filter((s) => Number(s.nbEpisodes || 0) >= minEp);
+      let data = [];
+      if (g || (minEp !== null && !Number.isNaN(minEp))) {
+        const params = new URLSearchParams();
+        if (g) params.set("genre", g);
+        if (minEp !== null && !Number.isNaN(minEp)) params.set("minEpisodes", String(minEp));
+        const res = await axios.get(`${API}/search?${params.toString()}`);
+        data = Array.isArray(res.data) ? res.data : [];
+      } else {
+        const res = await axios.get(API);
+        data = Array.isArray(res.data) ? res.data : [];
+      }
 
+      const resultat = t === "" ? data : data.filter((s) => (s.title || "").toLowerCase().includes(t));
       setSeries(resultat);
     } catch {
       setSeries([]);
@@ -83,13 +90,11 @@ export default function App() {
   function onChangeRecherche(event) {
     const v = event.target.value;
     setTexte(v);
+    chercher(v);
     if (v.trim() === "") {
-      setSeries([]);
       setSelection(null);
       setMontrerFormulaire(false);
-      return;
     }
-    chercher(v);
   }
 
   function onChoisir(serie) {
@@ -129,14 +134,12 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get("q") || "";
-    if (q && q !== texte) {
-      setTexte(q);
-      chercher(q);
-    }
+    setTexte(q);
+    chercher(q);
   }, [location.search]);
 
   useEffect(() => {
-    if (texte.trim() !== "") chercher(texte);
+    chercher(texte);
   }, [filterGenre, filterMinEp]);
 
   const lignes = series.map((s) => {
@@ -157,8 +160,13 @@ export default function App() {
     );
   });
 
+  const hasAnyQuery =
+    texte.trim() !== "" ||
+    filterGenre.trim() !== "" ||
+    (filterMinEp !== "" && !Number.isNaN(Number(filterMinEp)) && Number(filterMinEp) > 0);
+
   const ligneAucun =
-    texte.trim() !== "" && series.length === 0 ? (
+    hasAnyQuery && series.length === 0 ? (
       <tr>
         <td colSpan="5" style={{ textAlign: "center" }}>Aucun résultat</td>
       </tr>
@@ -167,7 +175,7 @@ export default function App() {
   function resetFilters() {
     setFilterGenre("");
     setFilterMinEp("");
-    if (texte.trim() !== "") chercher(texte);
+    chercher(texte);
   }
 
   return (
@@ -184,7 +192,7 @@ export default function App() {
         <input
           value={texte}
           onChange={onChangeRecherche}
-          placeholder="Tape un titre"
+          placeholder="Tape un titre (optionnel)"
           style={{ padding: 8, width: 320, maxWidth: "100%" }}
         />
         <button onClick={() => setShowFilters((v) => !v)} className="btn btn-outline-secondary">
@@ -220,7 +228,7 @@ export default function App() {
               />
             </div>
             <div className="ms-auto d-flex gap-2">
-              <button className="btn btn-outline-secondary" onClick={() => chercher(texte)} disabled={texte.trim()===""}>
+              <button className="btn btn-outline-secondary" onClick={() => chercher(texte)}>
                 Appliquer
               </button>
               <button className="btn btn-outline-dark" onClick={resetFilters}>
