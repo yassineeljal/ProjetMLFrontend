@@ -1,194 +1,269 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { Link, useLocation } from "react-router-dom";
 
-const API = "http://127.0.0.1:8888/people";
+const API = "http://127.0.0.1:8888/series";
+const STORAGE_KEY = "series_history";
+const MAX_HISTORY = 200;
+const PLAYLIST_KEY = "my_playlist";
 
-function App() {
+function addToLocalPlaylist(serie) {
+  try {
+    const raw = localStorage.getItem(PLAYLIST_KEY);
+    const pl = raw ? JSON.parse(raw) : { name: "Ma playlist", items: [] };
+    const items = Array.isArray(pl.items) ? pl.items.slice() : [];
+    const exists = items.some((it) => it.id === serie.id);
+    const newItem = {
+      id: serie.id ?? crypto.randomUUID?.() ?? Date.now(),
+      title: serie.title ?? "",
+      gender: serie.gender ?? "",
+      nbEpisodes: Number(serie.nbEpisodes ?? 0),
+      note: serie.note ?? ""
+    };
+    const nextItems = exists ? items.map((it) => (it.id === newItem.id ? newItem : it)) : [...items, newItem];
+    localStorage.setItem(PLAYLIST_KEY, JSON.stringify({ name: pl.name || "Ma playlist", items: nextItems }));
+  } catch {}
+}
+
+export default function App() {
+  const location = useLocation();
+
   const [texte, setTexte] = useState("");
-  const [personnes, setPersonnes] = useState([]);
-
+  const [series, setSeries] = useState([]);
   const [selection, setSelection] = useState(null);
   const [montrerFormulaire, setMontrerFormulaire] = useState(false);
-  const [nom, setNom] = useState("");
-  const [genre, setGenre] = useState("");
-  const [age, setAge] = useState("");
 
-  async function chercher(nomTape) {
+  const [title, setTitle] = useState("");
+  const [gender, setGender] = useState("");
+  const [nbEpisodes, setNbEpisodes] = useState("");
+  const [note, setNote] = useState("");
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterGenre, setFilterGenre] = useState("");
+  const [filterMinEp, setFilterMinEp] = useState("");
+
+  function saveHistory(serie, action = "select") {
     try {
-      const url = API + "/findUser/" + encodeURIComponent(nomTape);
-      const res = await axios.post(url);
-      if (Array.isArray(res.data)) {
-        setPersonnes(res.data);
-      } else {
-        setPersonnes([]);
-      }
-    } catch (e) {
-      setPersonnes([]);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      const item = {
+        id: serie.id ?? null,
+        title: serie.title ?? "",
+        gender: serie.gender ?? "",
+        nbEpisodes: Number(serie.nbEpisodes ?? 0),
+        note: serie.note ?? "",
+        action,
+        ts: Date.now()
+      };
+      const last = arr[arr.length - 1];
+      const isDup = last && last.id === item.id && last.action === item.action;
+      const next = isDup ? arr : [...arr, item].slice(-MAX_HISTORY);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {}
+  }
+
+  async function chercher(titreTape) {
+    try {
+      const res = await axios.get(API);
+      const data = Array.isArray(res.data) ? res.data : [];
+      const t = titreTape.trim().toLowerCase();
+      let resultat = t === "" ? [] : data.filter((s) => (s.title || "").toLowerCase().includes(t));
+
+      const g = filterGenre.trim().toLowerCase();
+      const minEp = filterMinEp === "" ? 0 : Number(filterMinEp);
+      if (g) resultat = resultat.filter((s) => (s.gender || "").toLowerCase().includes(g));
+      if (!Number.isNaN(minEp) && minEp > 0) resultat = resultat.filter((s) => Number(s.nbEpisodes || 0) >= minEp);
+
+      setSeries(resultat);
+    } catch {
+      setSeries([]);
     }
   }
 
   function onChangeRecherche(event) {
-    var v = event.target.value;
+    const v = event.target.value;
     setTexte(v);
-
-
     if (v.trim() === "") {
-      setPersonnes([]);
+      setSeries([]);
       setSelection(null);
       setMontrerFormulaire(false);
       return;
     }
-
     chercher(v);
   }
 
-  function onChoisir(personne) {
-    setSelection(personne);
-    setMontrerFormulaire(false);
-
-
-
-    setNom(personne.name);
-    setGenre(personne.gender);
-    setAge(personne.age);
-
-  }
-
-  function onCliquerModifier() {
-    if (!selection) return;
+  function onChoisir(serie) {
+    setSelection(serie);
     setMontrerFormulaire(true);
+    setTitle(serie.title ?? "");
+    setGender(serie.gender ?? "");
+    setNbEpisodes(serie.nbEpisodes ?? "");
+    setNote(serie.note ?? "");
+    saveHistory(serie, "select");
   }
 
-  async function onEnregistrer(event) {
-    event.preventDefault();
+  async function onAjouter() {
     if (!selection) return;
-
-    if (nom.trim() === "" || genre.trim() === "" || age === "") {
-      alert("Remplis tous les champs");
+    const objet = {
+      id: selection.id,
+      title: (title || selection.title || "").toString().trim(),
+      gender: (gender || selection.gender || "").toString().trim(),
+      nbEpisodes: Number(nbEpisodes || selection.nbEpisodes || 0),
+      note: (note || selection.note || "").toString().trim()
+    };
+    if (objet.title === "" || objet.gender === "" || Number.isNaN(objet.nbEpisodes)) {
+      alert("Remplis les champs obligatoires");
       return;
     }
-
-    var objet = {
-      id: selection.id,
-      name: nom.trim(),
-      gender: genre.trim(),
-      age: Number(age)
-    };
-
     try {
-      const url = API + "/addUser";
-      await axios.post(url, objet);
-
-      var nouvelleListe = personnes.map(function (p) {
-        if (p.id === selection.id) {
-          return {
-            id: selection.id,
-            name: objet.name,
-            gender: objet.gender,
-            age: objet.age
-          };
-        } else {
-          return p;
-        }
-      });
-
-      setPersonnes(nouvelleListe);
-
-
-     
-      setSelection({
-        id: selection.id,
-        name: objet.name,
-        gender: objet.gender,
-        age: objet.age
-      });
-
+      try { await axios.post("http://127.0.0.1:8888/addSerieToPlaylist", objet); } catch {}
+      addToLocalPlaylist(objet);
+      saveHistory(objet, "playlist_add");
+      alert("Série ajoutée à la playlist !");
       setMontrerFormulaire(false);
-      alert("Modifications enregistrées !");
-    } catch (e) {
-      alert("Erreur pendant l'enregistrement");
+    } catch {
+      alert("Erreur pendant l'ajout");
     }
   }
 
-  var lignes = personnes.map(function (p) {
-    var estSelectionne = selection && selection.id === p.id;
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const q = params.get("q") || "";
+    if (q && q !== texte) {
+      setTexte(q);
+      chercher(q);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    if (texte.trim() !== "") chercher(texte);
+  }, [filterGenre, filterMinEp]);
+
+  const lignes = series.map((s) => {
+    const estSelectionnee = selection && selection.id === s.id;
     return (
       <tr
-        key={p.id}
-        onClick={function () { onChoisir(p); }}
-        style={{ cursor: "pointer", background: estSelectionne ? "#eef" : "transparent" }}
+        key={s.id}
+        onClick={() => onChoisir(s)}
+        style={{ cursor: "pointer", background: estSelectionnee ? "#eef" : "transparent" }}
         title="Clique pour sélectionner"
       >
-        <td>{p.id}</td>
-        <td>{p.name}</td>
-        <td>{p.gender}</td>
-        <td>{p.age}</td>
+        <td>{s.id}</td>
+        <td>{s.title}</td>
+        <td>{s.gender}</td>
+        <td>{s.nbEpisodes}</td>
+        <td>{s.note}</td>
       </tr>
     );
   });
 
-  var ligneAucun = null;
-  if (texte.trim() !== "" && personnes.length === 0) {
-    ligneAucun = (
+  const ligneAucun =
+    texte.trim() !== "" && series.length === 0 ? (
       <tr>
-        <td colSpan="4" style={{ textAlign: "center" }}>Aucun résultat</td>
+        <td colSpan="5" style={{ textAlign: "center" }}>Aucun résultat</td>
       </tr>
-    );
+    ) : null;
+
+  function resetFilters() {
+    setFilterGenre("");
+    setFilterMinEp("");
+    if (texte.trim() !== "") chercher(texte);
   }
 
   return (
     <div style={{ padding: 16 }}>
-      <h1>Recherche et modification</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <h1>Recherche et ajout à la playlist</h1>
+        <div className="d-flex gap-2">
+          <Link to="/PlayList" className="btn btn-outline-primary">Voir la playlist</Link>
+          <Link to="/History" className="btn btn-outline-secondary">Voir l’historique</Link>
+        </div>
+      </div>
 
-
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8, flexWrap: "wrap" }}>
         <input
           value={texte}
           onChange={onChangeRecherche}
-          placeholder="Tape un nom (ex: Pa)"
-          style={{ padding: 8, width: 320 }}
+          placeholder="Tape un titre"
+          style={{ padding: 8, width: 320, maxWidth: "100%" }}
         />
-        <button
-          onClick={onCliquerModifier}
-          disabled={!selection}
-          style={{ padding: "8px 12px" }}
-          title={!selection ? "Sélectionne une ligne d'abord" : "Modifier la personne sélectionnée"}
-        >
-          Modifier
+        <button onClick={() => setShowFilters((v) => !v)} className="btn btn-outline-secondary">
+          Filtre
+        </button>
+        <button onClick={onAjouter} disabled={!selection} className="btn btn-primary">
+          Ajouter à la playlist
         </button>
       </div>
 
+      {showFilters && (
+        <div style={{ border: "1px solid #ddd", borderRadius: 6, padding: 12, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ fontSize: 12, marginBottom: 4 }}>Genre</div>
+              <input
+                className="form-control"
+                value={filterGenre}
+                onChange={(e) => setFilterGenre(e.target.value)}
+                placeholder="ex: Drama"
+                style={{ minWidth: 200 }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, marginBottom: 4 }}>Nb épisodes minimum</div>
+              <input
+                type="number"
+                className="form-control"
+                value={filterMinEp}
+                onChange={(e) => setFilterMinEp(e.target.value)}
+                placeholder="ex: 10"
+                style={{ minWidth: 160 }}
+              />
+            </div>
+            <div className="ms-auto d-flex gap-2">
+              <button className="btn btn-outline-secondary" onClick={() => chercher(texte)} disabled={texte.trim()===""}>
+                Appliquer
+              </button>
+              <button className="btn btn-outline-dark" onClick={resetFilters}>
+                Réinitialiser
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {montrerFormulaire && selection ? (
-        <form onSubmit={onEnregistrer} style={{ border: "1px solid #ccc", padding: 12, borderRadius: 6, marginBottom: 12, maxWidth: 400 }}>
-
+        <form
+          onSubmit={(e) => { e.preventDefault(); onAjouter(); }}
+          style={{ border: "1px solid #ccc", padding: 12, borderRadius: 6, marginBottom: 12, maxWidth: 480 }}
+        >
           <div style={{ marginBottom: 8 }}>
-            <div style={{ marginBottom: 4 }}>Nom</div>
-            <input value={nom} onChange={function (e) { setNom(e.target.value); }} style={{ padding: 8, width: "100%" }} />
+            <div style={{ marginBottom: 4 }}>Titre</div>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ padding: 8, width: "100%" }} />
           </div>
-
           <div style={{ marginBottom: 8 }}>
             <div style={{ marginBottom: 4 }}>Genre</div>
-            <input value={genre} onChange={function (e) { setGenre(e.target.value); }} style={{ padding: 8, width: "100%" }} />
+            <input value={gender} onChange={(e) => setGender(e.target.value)} style={{ padding: 8, width: "100%" }} />
           </div>
-
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: 4 }}>Nombre d'épisodes</div>
+            <input type="number" value={nbEpisodes} onChange={(e) => setNbEpisodes(e.target.value)} style={{ padding: 8, width: "100%" }} />
+          </div>
           <div style={{ marginBottom: 12 }}>
-            <div style={{ marginBottom: 4 }}>Âge</div>
-            <input type="number" value={age} onChange={function (e) { setAge(e.target.value); }} style={{ padding: 8, width: "100%" }} />
+            <div style={{ marginBottom: 4 }}>Note</div>
+            <input value={note} onChange={(e) => setNote(e.target.value)} style={{ padding: 8, width: "100%" }} />
           </div>
-
-          <button type="submit" style={{ padding: "8px 12px" }}>Enregistrer</button>
+          <button type="submit" className="btn btn-primary">Ajouter</button>
         </form>
       ) : null}
-
 
       <table border="1" cellPadding="5" style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
             <th>ID</th>
-            <th>Nom</th>
+            <th>Titre</th>
             <th>Genre</th>
-            <th>Âge</th>
+            <th>Nb épisodes</th>
+            <th>Note</th>
           </tr>
         </thead>
         <tbody>
@@ -199,5 +274,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

@@ -10,7 +10,7 @@ import HomePages from "./pages/HomePages";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
 import History from "./pages/History";
-import Filter from "./pages/Filter";
+import PlayList from "./pages/PlayList";
 import Search from "./pages/Search";
 
 import { UserProvider } from "./context/UserContext";
@@ -25,7 +25,7 @@ function App() {
             <Route path='/' element={<HomePages />} />
             <Route path='/Search' element={<Search />} />
             <Route path='/Admin' element={<Admin />} />
-            <Route path='/Filter' element={<Filter />} />
+            <Route path='/PlayList' element={<PlayList />} />
             <Route path='/History' element={<History />} />
             <Route path='*' element={<NotFound />} />
           </Routes>
