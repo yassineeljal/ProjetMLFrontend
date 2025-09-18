@@ -11,7 +11,7 @@ function HomePages() {
         <div className="actions">
           <Link to="/Search" className="btn primary">Rechercher une série</Link>
           <Link to="/History" className="btn ghost">Voir l’historique</Link>
-          <Link to="/Admin" className="btn light">Ajouter une série</Link>
+          <Link to="/PlayList" className="btn light">Voir ma Playlist</Link>
         </div>
       </div>
     </div>

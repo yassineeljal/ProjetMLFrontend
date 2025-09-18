@@ -26,13 +26,13 @@ function Navbar2(props) {
         <div className="collapse navbar-collapse" id="navbarNavDropdown">
           <ul className="navbar-nav ms-auto">
             <li className="nav-item">
-              <Link to="/History" className="nav-link">History</Link>
+              <Link to="/History" className="nav-link">Mon Historique</Link>
             </li>
             <li className="nav-item">
-              <Link to="/Filter" className="nav-link">Filter</Link>
+              <Link to="/PlayList" className="nav-link">Ma PlayList</Link>
             </li>
             <li className="nav-item">
-              <Link to="/Search" className="nav-link">Search</Link>
+              <Link to="/Search" className="nav-link">Rechercher une série</Link>
             </li>
             <li className="nav-item">
               <Link to="/Admin" className="nav-link">Admin</Link>
