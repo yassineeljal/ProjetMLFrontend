@@ -34,18 +34,6 @@ function Admin(props) {
         });
  
     }
-    
- 
-    
-
-    //const supprimerClient = async (id) => {
-    //    try {
-    //        await axios.delete(`http://localhost:8888/people/user/${id}`);
-    //        await loadAllQuestions();
-    //    } catch (error) {
-    //        console.error("Erreur :", error);
-    //    }
-    //};
 
     const supprimerClient = async (e) => {
         e.preventDefault();        
