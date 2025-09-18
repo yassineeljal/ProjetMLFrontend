@@ -14,16 +14,13 @@ async function pushHistory(serieId) {
 export default function Search() {
   const location = useLocation();
 
-  // Champs UI
   const [titleQuery, setTitleQuery] = useState("");
   const [genreFilter, setGenreFilter] = useState("");
   const [minEpFilter, setMinEpFilter] = useState("");
 
-  // Données
   const [series, setSeries] = useState([]);
   const [selection, setSelection] = useState(null);
 
-  // Modes exclusifs
   const modeTitle = useMemo(() => titleQuery.trim() !== "", [titleQuery]);
   const modeFilters = useMemo(
     () => genreFilter.trim() !== "" || (minEpFilter !== "" && !Number.isNaN(Number(minEpFilter))),
@@ -35,13 +32,11 @@ export default function Search() {
   async function runSearch() {
     try {
       if (modeTitle && !modeFilters) {
-        // /series/search/title
         const res = await axios.get(`${API_SERIES}/search/title`, { params: { title: titleQuery.trim() } });
         setSeries(Array.isArray(res.data) ? res.data : []);
         return;
       }
       if (!modeTitle && modeFilters) {
-        // /series/search?genre=&minEpisodes=
         const params = new URLSearchParams();
         if (genreFilter.trim() !== "") params.set("genre", genreFilter.trim());
         if (minEpFilter !== "" && !Number.isNaN(Number(minEpFilter))) params.set("minEpisodes", String(Number(minEpFilter)));
@@ -49,7 +44,6 @@ export default function Search() {
         setSeries(Array.isArray(res.data) ? res.data : []);
         return;
       }
-      // Liste complète si aucun mode
       const res = await axios.get(API_SERIES);
       setSeries(Array.isArray(res.data) ? res.data : []);
     } catch {
@@ -57,7 +51,6 @@ export default function Search() {
     }
   }
 
-  // Handlers
   function onChangeTitle(e) {
     const v = e.target.value;
     setTitleQuery(v);
@@ -86,17 +79,14 @@ export default function Search() {
     setSelection(null);
   }
 
-  // Optionnel: pré-remplir depuis ?q= dans l’URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get("q") || "";
     setTitleQuery(q);
   }, [location.search]);
 
-  // Lance la recherche quand l’un des champs change
   useEffect(() => {
     runSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titleQuery, genreFilter, minEpFilter]);
 
   return (
@@ -108,7 +98,6 @@ export default function Search() {
         </div>
       </div>
 
-      {/* Mode Titre */}
       <div className="border rounded p-3 mb-3">
         <div className="mb-2 fw-bold">Mode Titre</div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -123,7 +112,6 @@ export default function Search() {
         </div>
       </div>
 
-      {/* Mode Filtres */}
       <div className="border rounded p-3 mb-3">
         <div className="mb-2 fw-bold">Mode Filtres</div>
         <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -154,7 +142,6 @@ export default function Search() {
         </div>
       </div>
 
-      {/* Résultats */}
       <div className="table-responsive">
         <table className="table align-middle">
           <thead>

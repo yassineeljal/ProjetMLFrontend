@@ -34,6 +34,9 @@ function Navbar2(props) {
             <li className="nav-item">
               <Link to="/Search" className="nav-link">Rechercher une série</Link>
             </li>
+             <li className="nav-item">
+              <Link to="/Recommendations" className="nav-link">Recommendation</Link>
+            </li>
             <li className="nav-item">
               <Link to="/Admin" className="nav-link">Admin</Link>
             </li>
