@@ -1,111 +1,70 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import "bootstrap/dist/css/bootstrap.min.css";
+import axios from "axios";
 
-const STORAGE_KEY = "series_history";
+const API_HISTORY = "http://127.0.0.1:8888/history";
+const USER_ID = "1";
 
-function History() {
+export default function History() {
   const [items, setItems] = useState([]);
-  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  async function loadHistory() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      setItems(Array.isArray(arr) ? arr : []);
+      const r = await axios.get(`${API_HISTORY}/${USER_ID}/history`);
+      const arr = Array.isArray(r.data) ? r.data : [];
+      setItems(arr);
     } catch {
       setItems([]);
+    } finally {
+      setLoading(false);
     }
+  }
+
+  useEffect(() => {
+    loadHistory();
   }, []);
-
-  const onRemove = (ts) => {
-    const next = items.filter((it) => it.ts !== ts);
-    setItems(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
-
-  const onClear = () => {
-    setItems([]);
-    localStorage.removeItem(STORAGE_KEY);
-  };
-
-  const filtered = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    const base = [...items].sort((a, b) => b.ts - a.ts);
-    if (!term) return base;
-    return base.filter((it) =>
-      (it.title || "").toLowerCase().includes(term) ||
-      (it.gender || "").toLowerCase().includes(term) ||
-      String(it.nbEpisodes ?? "").includes(term) ||
-      (it.note || "").toLowerCase().includes(term)
-    );
-  }, [items, q]);
 
   return (
     <div className="container py-4 page" style={{ maxWidth: 1100 }}>
       <div className="d-flex align-items-center justify-content-between mb-3">
         <h1 className="page-title m-0">Historique</h1>
         <div className="d-flex gap-2">
-          <input
-            className="form-control"
-            placeholder="Filtrer (titre, genre, note, épisodes)"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            style={{ width: 320 }}
-          />
-          <button
-            className="btn btn-outline-danger"
-            onClick={onClear}
-            disabled={items.length === 0}
-          >
-            Tout effacer
-          </button>
+          <button className="btn btn-outline-dark" onClick={loadHistory}>Rafraîchir</button>
+          <Link to="/Search" className="btn btn-outline-secondary">Recherche</Link>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
-        <div className="text-muted border rounded p-4">
-          Aucun élément dans l’historique.
-        </div>
+      {loading ? (
+        <div className="text-muted">Chargement...</div>
+      ) : items.length === 0 ? (
+        <div className="border rounded p-4 text-muted">Aucun élément d’historique.</div>
       ) : (
-        <div className="row g-3">
-          {filtered.map((it) => (
-            <div className="col-12 col-md-6 col-lg-4" key={it.ts}>
-              <div className="card h-100 shadow-sm">
-                <div className="card-body d-flex flex-column">
-                  <h5 className="card-title mb-2">{it.title || "Sans titre"}</h5>
-                  <div className="small text-muted mb-2">
-                    {new Date(it.ts).toLocaleString()}
-                  </div>
-                  <ul className="list-unstyled mb-3">
-                    <li><strong>Genre:</strong> {it.gender || "—"}</li>
-                    <li><strong>Épisodes:</strong> {it.nbEpisodes ?? "—"}</li>
-                    <li><strong>Note:</strong> {it.note || "—"}</li>
-                    <li><strong>ID:</strong> {it.id ?? "—"}</li>
-                  </ul>
-                  <div className="mt-auto d-flex gap-2">
-                    <Link
-                      to={`/Search?q=${encodeURIComponent(it.title || "")}`}
-                      className="btn btn-primary flex-fill"
-                    >
-                      Rechercher à nouveau
-                    </Link>
-                    <button
-                      className="btn btn-outline-secondary"
-                      onClick={() => onRemove(it.ts)}
-                      title="Retirer de l'historique"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="table-responsive">
+          <table className="table align-middle">
+            <thead>
+              <tr>
+                <th style={{width:100}}>ID</th>
+                <th>Titre</th>
+                <th>Genre</th>
+                <th>Nb épisodes</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it, idx) => (
+                <tr key={`${it?.id ?? idx}`}>
+                  <td>{it?.id}</td>
+                  <td>{it?.title}</td>
+                  <td>{it?.gender}</td>
+                  <td>{it?.nbEpisodes}</td>
+                  <td>{it?.note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
 }
-
-export default History;

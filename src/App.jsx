@@ -12,6 +12,7 @@ import Admin from "./pages/Admin";
 import History from "./pages/History";
 import PlayList from "./pages/PlayList";
 import Search from "./pages/Search";
+import Recommendations from "./pages/Recommendation";
 
 import { UserProvider } from "./context/UserContext";
 
@@ -28,6 +29,8 @@ function App() {
             <Route path='/PlayList' element={<PlayList />} />
             <Route path='/History' element={<History />} />
             <Route path='*' element={<NotFound />} />
+            <Route path="/Recommendations" element={<Recommendations />} />
+
           </Routes>
         </main>
         <Footer />

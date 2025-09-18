@@ -78,40 +78,17 @@ export default function PlayList() {
     <div className="container py-4" style={{ maxWidth: 1000 }}>
       <div className="d-flex flex-wrap justify-content-between align-items-center mb-3">
         <div className="d-flex flex-column">
-          {!nameEdit ? (
+          
             <>
               <div className="d-flex align-items-center gap-2">
                 <h1 className="m-0">{name}</h1>
-                <button
-                  className="btn btn-outline-primary btn-sm ms-1"
-                  onClick={() => setNameEdit(true)}
-                >
-                  Modifier le nom
-                </button>
               </div>
             </>
-          ) : (
-            <form
-              className="d-flex align-items-center gap-2"
-              onSubmit={(e) => { e.preventDefault(); saveName(); }}
-            >
-              <input
-                className="form-control"
-                style={{ width: 260 }}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nom de la playlist"
-              />
-              <button className="btn btn-primary" type="submit">Enregistrer</button>
-              <button className="btn btn-outline-secondary" type="button" onClick={() => setNameEdit(false)}>Annuler</button>
-            </form>
-          )}
+
           <small className="text-muted mt-1">{items.length} série(s)</small>
         </div>
-
         <div className="d-flex align-items-center gap-2 mt-2 mt-sm-0">
           <Link to="/Search" className="btn btn-outline-secondary">+ Ajouter depuis Recherche</Link>
-          <button className="btn btn-outline-danger" onClick={clearAll} disabled={items.length === 0}>Tout supprimer</button>
         </div>
       </div>
 
