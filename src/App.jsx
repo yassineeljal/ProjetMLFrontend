@@ -1,60 +1,41 @@
-import { useEffect, useState } from "react";
-import axios from "axios";
+//Arda
+
+import React from "react";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+
+import Navbar from "./header/Navbar";
+import Footer from "./header/Footer";
+
+import HomePages from "./pages/HomePages";
+import NotFound from "./pages/NotFound";
+import Admin from "./pages/Admin";
+import History from "./pages/History";
+import PlayList from "./pages/PlayList";
+import Search from "./pages/Search";
+import Recommendations from "./pages/Recommendation";
+
+import { UserProvider } from "./context/UserContext";
 
 function App() {
-  const [rows, setRows] = useState([]);
-  const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    axios.post("http://localhost:3306/finduser", { q: "" })
-      .then(res => setRows(res.data))
-      .catch(err => console.error("Erreur backend :", err));
-  }, []);
-
-  const handleSearch = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-
-    axios.post("http://localhost:3306/finduser", { q: value })
-      .then(res => setRows(res.data))
-      .catch(err => console.error("Erreur recherche :", err));
-  };
-
   return (
-    <div style={{ padding: "2rem" }}>
-      <h1>Recherche dans la base</h1>
+    <BrowserRouter>
+      <UserProvider>
+        <Navbar />
+        <main className="app-content container">
+          <Routes>
+            <Route path='/' element={<HomePages />} />
+            <Route path='/Search' element={<Search />} />
+            <Route path='/Admin' element={<Admin />} />
+            <Route path='/PlayList' element={<PlayList />} />
+            <Route path='/History' element={<History />} />
+            <Route path='*' element={<NotFound />} />
+            <Route path="/Recommendations" element={<Recommendations />} />
 
-      <input
-        type="text"
-        value={query}
-        onChange={handleSearch}
-        placeholder="Ex: PHI"
-        style={{ padding: "0.5rem", width: "300px" }}
-      />
-
-      <table border="1" cellPadding="5" style={{ marginTop: "1rem" }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Prénom</th>
-            <th>Nom</th>
-            <th>Email</th>
-            <th>Genre</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((u, idx) => (
-            <tr key={idx}>
-              <td>{u.id}</td>
-              <td>{u.first_name}</td>
-              <td>{u.last_name}</td>
-              <td>{u.email}</td>
-              <td>{u.gender}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </Routes>
+        </main>
+        <Footer />
+      </UserProvider>
+    </BrowserRouter>
   );
 }
 
