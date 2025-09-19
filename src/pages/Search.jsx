@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { Link, useLocation } from "react-router-dom";
 
@@ -11,60 +11,74 @@ async function pushHistory(serieId) {
   await axios.post(`${API_HISTORY}/${USER_ID}/history/${encodeURIComponent(serieId)}`);
 }
 
+const GENRES = ["Drama", "Anime", "Sci-Fi", "Comedy", "Historical", "Mystery", "Fantasy"];
+
 export default function Search() {
   const location = useLocation();
 
   const [titleQuery, setTitleQuery] = useState("");
-  const [genreFilter, setGenreFilter] = useState("");
-  const [minEpFilter, setMinEpFilter] = useState("");
+  const [genreQuery, setGenreQuery] = useState("");
+  const [minEpQuery, setMinEpQuery] = useState("");
 
-  const [series, setSeries] = useState([]);
+  const [allSeries, setAllSeries] = useState([]);
   const [selection, setSelection] = useState(null);
 
-  const modeTitle = useMemo(() => titleQuery.trim() !== "", [titleQuery]);
-  const modeFilters = useMemo(
-    () => genreFilter.trim() !== "" || (minEpFilter !== "" && !Number.isNaN(Number(minEpFilter))),
-    [genreFilter, minEpFilter]
-  );
-  const disableFilters = modeTitle;
-  const disableTitle = modeFilters;
+  const [title, setTitle] = useState("");
+  const [gender, setGender] = useState(""); 
+  const [nbEpisodes, setNbEpisodes] = useState("");
+  const [note, setNote] = useState("");
 
-  async function runSearch() {
+  async function fetchAll() {
     try {
-      if (modeTitle && !modeFilters) {
-        const res = await axios.get(`${API_SERIES}/search/title`, { params: { title: titleQuery.trim() } });
-        setSeries(Array.isArray(res.data) ? res.data : []);
-        return;
-      }
-      if (!modeTitle && modeFilters) {
-        const params = new URLSearchParams();
-        if (genreFilter.trim() !== "") params.set("genre", genreFilter.trim());
-        if (minEpFilter !== "" && !Number.isNaN(Number(minEpFilter))) params.set("minEpisodes", String(Number(minEpFilter)));
-        const res = await axios.get(`${API_SERIES}/search?${params.toString()}`);
-        setSeries(Array.isArray(res.data) ? res.data : []);
-        return;
-      }
       const res = await axios.get(API_SERIES);
-      setSeries(Array.isArray(res.data) ? res.data : []);
+      setAllSeries(Array.isArray(res.data) ? res.data : []);
     } catch {
-      setSeries([]);
+      setAllSeries([]);
     }
   }
 
-  function onChangeTitle(e) {
-    const v = e.target.value;
-    setTitleQuery(v);
-    if (v.trim() !== "") setSelection(null);
-  }
-  function onChangeGenre(e) {
-    const v = e.target.value;
-    setGenreFilter(v);
-    if (v.trim() !== "") setSelection(null);
-  }
-  function onChangeMinEp(e) {
-    const v = e.target.value;
-    setMinEpFilter(v);
-    if (v !== "") setSelection(null);
+  const filteredSeries = useMemo(() => {
+    const t = titleQuery.trim().toLowerCase();
+    const g = genreQuery.trim().toLowerCase();
+    const minEp =
+      minEpQuery !== "" && !Number.isNaN(Number(minEpQuery))
+        ? Number(minEpQuery)
+        : null;
+
+    return allSeries.filter((s) => {
+      const titleOk = t === "" ? true : (s?.title || "").toLowerCase().includes(t);
+
+      const serieGenre = String(s?.gender || "").trim().toLowerCase();
+      const genreOk = g === "" ? true : serieGenre === g;
+
+      const epOk = minEp === null ? true : Number(s?.nbEpisodes ?? NaN) >= minEp;
+
+      return titleOk && genreOk && epOk;
+    });
+  }, [allSeries, titleQuery, genreQuery, minEpQuery]);
+
+  async function onCreer() {
+    const obj = {
+      title: title.trim(),
+      gender: gender.trim(),
+      nbEpisodes: Number(nbEpisodes),
+      note: note.trim(),
+    };
+    if (obj.title === "" || obj.gender === "" || Number.isNaN(obj.nbEpisodes)) {
+      alert("Remplis Titre, Genre et Nb épisodes (nombre).");
+      return;
+    }
+    try {
+      await axios.post(`${API_SERIES}/addSerie`, obj);
+      alert("Nouvelle série créée !");
+      setTitle("");
+      setGender("");
+      setNbEpisodes("");
+      setNote("");
+      await fetchAll();
+    } catch {
+      alert("Erreur lors de la création de la série.");
+    }
   }
 
   async function onChoisir(serie) {
@@ -72,81 +86,144 @@ export default function Search() {
     try { await pushHistory(serie.id); } catch {}
   }
 
-  function resetAll() {
+  function resetFilters() {
     setTitleQuery("");
-    setGenreFilter("");
-    setMinEpFilter("");
+    setGenreQuery("");
+    setMinEpQuery("");
     setSelection(null);
   }
 
+  useEffect(() => {
+    fetchAll();
+  }, []);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get("q") || "";
     setTitleQuery(q);
   }, [location.search]);
 
-  useEffect(() => {
-    runSearch();
-  }, [titleQuery, genreFilter, minEpFilter]);
-
   return (
     <div style={{ padding: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <h1>Recherche</h1>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
+        <h1>Recherche & Séries</h1>
         <div className="d-flex gap-2">
-          <Link to="/History" className="btn btn-outline-secondary">Voir l’historique</Link>
+          <Link to="/History" className="btn btn-outline-secondary">
+            Voir l’historique
+          </Link>
         </div>
       </div>
 
-      <div className="border rounded p-3 mb-3">
-        <div className="mb-2 fw-bold">Mode Titre</div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <h5 style={{ marginBottom: 8 }}>Rechercher une série par :</h5>
+      <div
+        className="border rounded p-3 mb-3"
+        style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}
+      >
+        <div>
+          <label style={{ fontSize: 12, padding:8}}>Titre</label>
           <input
             value={titleQuery}
-            onChange={onChangeTitle}
-            placeholder="Tape un titre (active le mode Titre)"
-            style={{ padding: 8, width: 340, maxWidth: "100%" }}
-            disabled={disableTitle}
+            onChange={(e) => setTitleQuery(e.target.value)}
+            placeholder="Naru.."
+            style={{ padding: 8, minWidth: 220 }}
           />
-          <button className="btn btn-outline-dark" onClick={resetAll}>Réinitialiser</button>
         </div>
+        <div>
+          <label style={{ fontSize: 12, padding:8}}>Genre</label>
+          <select
+          
+            value={genreQuery}
+            onChange={(e) => setGenreQuery(e.target.value)}
+            style={{ minWidth: 160 }}
+          >
+            <option value="">-- Choisir --</option>
+            {GENRES.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12, padding:8}}>Nb épisodes minimum</label>
+          <input
+            type="number"
+            value={minEpQuery}
+            onChange={(e) => setMinEpQuery(e.target.value)}
+            placeholder="ex: 10"
+            style={{ padding: 8, width: 140 }}
+          />
+        </div>
+        <button className="btn btn-outline-dark" onClick={resetFilters}>
+          Réinitialiser
+        </button>
       </div>
 
-      <div className="border rounded p-3 mb-3">
-        <div className="mb-2 fw-bold">Mode Filtres</div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Genre</div>
-            <input
-              className="form-control"
-              value={genreFilter}
-              onChange={onChangeGenre}
-              placeholder="ex: Drama"
-              style={{ minWidth: 200 }}
-              disabled={disableFilters}
-            />
-          </div>
-          <div>
-            <div style={{ fontSize: 12, marginBottom: 4 }}>Nb épisodes minimum</div>
-            <input
-              type="number"
-              className="form-control"
-              value={minEpFilter}
-              onChange={onChangeMinEp}
-              placeholder="ex: 10"
-              style={{ minWidth: 160 }}
-              disabled={disableFilters}
-            />
-          </div>
-          <button className="btn btn-outline-dark" onClick={resetAll}>Réinitialiser</button>
+      <h5 style={{ marginBottom: 8 }}>Ajouter une série :</h5>
+      <div
+        style={{
+          display: "flex",
+          gap: "8px",
+          alignItems: "flex-end",
+          flexWrap: "wrap",
+          marginBottom: "12px",
+        }}
+      >
+        <div>
+          <label style={{ fontSize: 12 ,padding:8}}>Titre</label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            style={{ padding: 6, minWidth: 150 }}
+          />
         </div>
+        <div>
+          <label style={{ fontSize: 12 ,padding:8}}>Genre</label>
+          <select
+            value={gender}
+            onChange={(e) => setGender(e.target.value)}
+            style={{ minWidth: 160 }}
+          >
+            <option value="">-- Choisir --</option>
+            {GENRES.map((g) => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label style={{ fontSize: 12,padding:8 }}>Nb épisodes</label>
+          <input
+            type="number"
+            value={nbEpisodes}
+            onChange={(e) => setNbEpisodes(e.target.value)}
+            style={{ padding: 6, width: 110 }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 12,padding:8 }}>Note</label>
+          <input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            style={{ padding: 6, width: 140 }}
+          />
+        </div>
+        <button className="btn btn-success" onClick={onCreer}>
+          Ajouter
+        </button>
       </div>
 
-      <div className="table-responsive">
-        <table className="table align-middle">
+      <div
+        className="table-responsive"
+        style={{ maxHeight: "500px", overflowY: "auto", marginBottom: "2rem" }}
+      >
+        <table className="table align-middle table-striped">
           <thead>
             <tr>
-              <th style={{width:100}}>ID</th>
+              <th>ID</th>
               <th>Titre</th>
               <th>Genre</th>
               <th>Nb épisodes</th>
@@ -154,26 +231,32 @@ export default function Search() {
             </tr>
           </thead>
           <tbody>
-            {series.length === 0 ? (
-              <tr><td colSpan="5" className="text-center text-muted">Aucun résultat</td></tr>
-            ) : (
-              series.map((s) => {
-                const selected = selection && selection.id === s.id;
-                return (
-                  <tr
-                    key={s.id}
-                    onClick={() => onChoisir(s)}
-                    style={{ cursor: "pointer", background: selected ? "#eef" : "transparent" }}
-                    title="Clique pour sélectionner"
-                  >
-                    <td>{s.id}</td>
-                    <td>{s.title}</td>
-                    <td>{s.gender}</td>
-                    <td>{s.nbEpisodes}</td>
-                    <td>{s.note}</td>
-                  </tr>
-                );
-              })
+            {filteredSeries.map((s) => {
+              const estSelectionnee = selection && selection.id === s.id;
+              return (
+                <tr
+                  key={s.id}
+                  onClick={() => onChoisir(s)}
+                  style={{
+                    cursor: "pointer",
+                    background: estSelectionnee ? "#eef" : "transparent",
+                  }}
+                  title="Clique pour sélectionner"
+                >
+                  <td>{s.id}</td>
+                  <td>{s.title}</td>
+                  <td>{s.gender}</td>
+                  <td>{s.nbEpisodes}</td>
+                  <td>{s.note}</td>
+                </tr>
+              );
+            })}
+            {filteredSeries.length === 0 && (
+              <tr>
+                <td colSpan="5" style={{ textAlign: "center" }}>
+                  Aucun résultat
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
