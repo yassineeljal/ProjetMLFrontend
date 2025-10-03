@@ -1,11 +1,12 @@
-//Arda
-
+ 
+ 
 import React from "react";
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
+ 
 import Navbar from "./header/Navbar";
 import Footer from "./header/Footer";
-
+import Trending from "./pages/Trending";
+ 
 import HomePages from "./pages/HomePages";
 import NotFound from "./pages/NotFound";
 import Admin from "./pages/Admin";
@@ -13,9 +14,9 @@ import History from "./pages/History";
 import PlayList from "./pages/PlayList";
 import Search from "./pages/Search";
 import Recommendations from "./pages/Recommendation";
-
+ 
 import { UserProvider } from "./context/UserContext";
-
+ 
 function App() {
   return (
     <BrowserRouter>
@@ -28,9 +29,10 @@ function App() {
             <Route path='/Admin' element={<Admin />} />
             <Route path='/PlayList' element={<PlayList />} />
             <Route path='/History' element={<History />} />
+             <Route path='/Trending' element={<Trending />} />
             <Route path='*' element={<NotFound />} />
             <Route path="/Recommendations" element={<Recommendations />} />
-
+ 
           </Routes>
         </main>
         <Footer />
@@ -38,5 +40,7 @@ function App() {
     </BrowserRouter>
   );
 }
-
+ 
 export default App;
+ 
+ 
