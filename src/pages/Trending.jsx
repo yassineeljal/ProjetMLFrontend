@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
- 
+
 const API_TRENDING = "http://127.0.0.1:8888/series/trending";
  
 export default function Trending() {
   const [items, setItems] = useState([]);
-  const [limit, setLimit] = useState(10);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
  
