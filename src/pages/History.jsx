@@ -1,17 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { UserContext } from "../context/UserContext";
 
 const API_HISTORY = "http://127.0.0.1:8888/history";
-const USER_ID = "1";
 
 export default function History() {
+  const { user } = useContext(UserContext);
+  const peopleId = user?.id ?? "1";
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   async function loadHistory() {
     try {
-      const r = await axios.get(`${API_HISTORY}/${USER_ID}/history`);
+      const r = await axios.get(`${API_HISTORY}/${peopleId}/history`);
       const arr = Array.isArray(r.data) ? r.data : [];
       setItems(arr);
     } catch {
@@ -23,28 +25,27 @@ export default function History() {
 
   useEffect(() => {
     loadHistory();
-  }, []);
+  }, [peopleId]);
 
   return (
-    <div className="container py-4 page" style={{ maxWidth: 1100 }}>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h1 className="page-title m-0">Historique</h1>
-        <div className="d-flex gap-2">
-          <button className="btn btn-outline-dark" onClick={loadHistory}>Rafraîchir</button>
-          <Link to="/Search" className="btn btn-outline-secondary">Recherche</Link>
+    <div className="page-wrap">
+      <div className="page-head">
+        <h1 className="page-h1">Historique</h1>
+        <div className="head-actions">
+          <button className="btn-ghost" onClick={loadHistory}>Rafraîchir</button>
+          <Link to="/Search" className="btn-ghost">Recherche</Link>
         </div>
       </div>
-
       {loading ? (
-        <div className="text-muted">Chargement...</div>
+        <div className="empty">Chargement…</div>
       ) : items.length === 0 ? (
-        <div className="border rounded p-4 text-muted">Aucun élément d’historique.</div>
+        <div className="empty">Aucun élément d’historique.</div>
       ) : (
-        <div className="table-responsive">
-          <table className="table align-middle">
+        <div className="table-card">
+          <table className="nice-table">
             <thead>
               <tr>
-                <th style={{width:100}}>ID</th>
+                <th>ID</th>
                 <th>Titre</th>
                 <th>Genre</th>
                 <th>Nb épisodes</th>
