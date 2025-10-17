@@ -1,31 +1,25 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { UserContext } from "../context/UserContext";
-
-const API_HISTORY = "http://127.0.0.1:8888/history";
+import { api, endpoints } from "../api";
 
 export default function History() {
   const { user } = useContext(UserContext);
-  const peopleId = user?.id ?? "1";
+  const peopleId = user?.id; 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
   async function loadHistory() {
     try {
-      const r = await axios.get(`${API_HISTORY}/${peopleId}/history`);
+      const r = await api.get(endpoints.history(peopleId));
       const arr = Array.isArray(r.data) ? r.data : [];
       setItems(arr);
     } catch {
       setItems([]);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  useEffect(() => {
-    loadHistory();
-  }, [peopleId]);
+  useEffect(() => { if (peopleId) loadHistory(); }, [peopleId]);
 
   return (
     <div className="page-wrap">
@@ -57,7 +51,7 @@ export default function History() {
                 <tr key={`${it?.id ?? idx}`}>
                   <td>{it?.id}</td>
                   <td>{it?.title}</td>
-                  <td>{it?.gender}</td>
+                  <td>{it?.genre ?? it?.gender}</td>
                   <td>{it?.nbEpisodes}</td>
                   <td>{it?.note}</td>
                 </tr>

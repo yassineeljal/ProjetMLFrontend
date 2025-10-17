@@ -1,14 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import { UserContext } from "../context/UserContext";
-
-const API_RECO = "http://127.0.0.1:8888/recommendation";
-const API_HISTORY = "http://127.0.0.1:8888/history";
+import { api, endpoints } from "../api";
 
 export default function Recommendations() {
   const { user } = useContext(UserContext);
-  const peopleId = user?.id ?? "1";
+  const peopleId = user?.id;
   const [reco, setReco] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selection, setSelection] = useState(null);
@@ -16,14 +13,13 @@ export default function Recommendations() {
 
   async function pushHistory(serieId) {
     if (!serieId) return;
-    await axios.post(`${API_HISTORY}/${peopleId}/history/${encodeURIComponent(serieId)}`);
+    await api.post(endpoints.historyPush(peopleId, serieId));
   }
 
   async function loadRecommendations() {
-    setLoading(true);
-    setError("");
+    setLoading(true); setError("");
     try {
-      const r = await axios.get(`${API_RECO}/${peopleId}/recommendations`);
+      const r = await api.get(endpoints.recommendations(peopleId));
       const arr = Array.isArray(r.data) ? r.data : [];
       setReco(arr);
     } catch {
@@ -36,12 +32,12 @@ export default function Recommendations() {
 
   async function onSelectSerie(serie) {
     setSelection(serie);
-    try { await pushHistory(serie.id); } catch {}
+    try { await pushHistory(serie.id); } catch { 
+      
+     }
   }
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [peopleId]);
+  useEffect(() => { if (peopleId) loadRecommendations(); }, [peopleId]);
 
   return (
     <div className="page-wrap">
@@ -53,7 +49,9 @@ export default function Recommendations() {
           <Link to="/History" className="btn-ghost">Historique</Link>
         </div>
       </div>
+
       {error && <div className="alert-warn">{error}</div>}
+
       {loading ? (
         <div className="empty">Chargement…</div>
       ) : reco.length === 0 ? (
@@ -77,7 +75,7 @@ export default function Recommendations() {
                   <tr key={s.id} onClick={() => onSelectSerie(s)} className={selected ? "row-selected" : ""}>
                     <td>{s.id}</td>
                     <td>{s.title}</td>
-                    <td>{s.gender}</td>
+                    <td>{s.genre ?? s.gender}</td>
                     <td>{s.nbEpisodes}</td>
                     <td>{s.note}</td>
                   </tr>

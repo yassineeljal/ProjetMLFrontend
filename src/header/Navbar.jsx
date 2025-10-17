@@ -1,10 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useContext } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import logo from "../assets/movie-logo.png";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
 
 function Navbar2() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, setUser } = useContext(UserContext); 
 
   const closeMenu = () => {
     const el = document.getElementById("navbarNavDropdown");
@@ -28,6 +31,14 @@ function Navbar2() {
     return () => document.removeEventListener("click", onClick);
   }, []);
 
+  function logout() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    closeMenu();
+    navigate("/Login");
+  }
+
   return (
     <nav id="navSimple" className="navbar navbar-expand-lg navbar-dark neon-nav fixed-top py-3">
       <div className="container-fluid">
@@ -49,12 +60,64 @@ function Navbar2() {
 
         <div className="collapse navbar-collapse" id="navbarNavDropdown">
           <ul className="navbar-nav ms-auto">
-            <li className="nav-item"><Link to="/History" className="nav-link" onClick={closeMenu}>Mon Historique</Link></li>
-            <li className="nav-item"><Link to="/Trending" className="nav-link" onClick={closeMenu}>Tendances</Link></li>
-            <li className="nav-item"><Link to="/PlayList" className="nav-link" onClick={closeMenu}>Ma PlayList</Link></li>
-            <li className="nav-item"><Link to="/Search" className="nav-link" onClick={closeMenu}>Rechercher une série</Link></li>
-            <li className="nav-item"><Link to="/Recommendations" className="nav-link" onClick={closeMenu}>Recommandations</Link></li>
-            <li className="nav-item"><Link to="/Login" className="btn neon-btn" onClick={closeMenu}>Login</Link></li>
+            <li className="nav-item">
+              <Link to="/History" className="nav-link" onClick={closeMenu}>
+                Mon Historique
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/Trending" className="nav-link" onClick={closeMenu}>
+                Tendances
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/PlayList" className="nav-link" onClick={closeMenu}>
+                Ma PlayList
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/Search" className="nav-link" onClick={closeMenu}>
+                Rechercher une série
+              </Link>
+            </li>
+            <li className="nav-item">
+              <Link to="/Recommendations" className="nav-link" onClick={closeMenu}>
+                Recommandations
+              </Link>
+            </li>
+
+            {!user ? (
+              <li className="nav-item">
+                <Link to="/Login" className="btn neon-btn ms-lg-3 mt-2 mt-lg-0" onClick={closeMenu}>
+                  SignUp / Login
+                </Link>
+              </li>
+            ) : (
+              <>
+                <li className="nav-item d-flex align-items-center ms-lg-3 mt-2 mt-lg-0">
+                  <span
+                    className="badge text-bg-dark"
+                    style={{
+                      background: "#3a2b68",
+                      color: "#cdbbff",
+                      padding: "8px 10px",
+                      borderRadius: "10px",
+                    }}
+                  >
+                    Bonjour, <b>{user.username}</b>
+                  </span>
+                </li>
+                <li className="nav-item">
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger ms-lg-3 mt-2 mt-lg-0"
+                    onClick={logout}
+                  >
+                    Déconnexion
+                  </button>
+                </li>
+              </>
+            )}
           </ul>
         </div>
       </div>

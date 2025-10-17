@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
-
-const API_TRENDING = "http://127.0.0.1:8888/series/trending";
+import { api, endpoints } from "../api";
 
 export default function Trending() {
   const [items, setItems] = useState([]);
@@ -13,7 +11,7 @@ export default function Trending() {
     setLoading(true);
     setErr("");
     try {
-      const r = await axios.get(API_TRENDING);
+      const r = await api.get(endpoints.series.trending);
       setItems(Array.isArray(r.data) ? r.data : []);
     } catch (e) {
       setItems([]);
@@ -23,9 +21,7 @@ export default function Trending() {
     }
   }
 
-  useEffect(() => {
-    loadTrending();
-  }, []);
+  useEffect(() => { loadTrending(); }, []);
 
   return (
     <div className="page-wrap">
@@ -38,7 +34,6 @@ export default function Trending() {
       </div>
 
       <p className="page-sub">Classement basé sur les 7 derniers jours</p>
-
       {err && <div className="alert-warn">{err}</div>}
 
       {loading ? (
