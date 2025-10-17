@@ -1,61 +1,52 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useContext } from "react";
 import axios from "axios";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { UserContext } from "../context/UserContext";
 
-const API_SERIES = "http://127.0.0.1:8888/series";
-const API_HISTORY = "http://127.0.0.1:8888/history";
-const USER_ID = "1";
+const API_BASE = `http://${window.location.hostname}:8888`;
+const api = axios.create({ baseURL: API_BASE });
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-async function pushHistory(serieId) {
-  if (!serieId) return;
-  await axios.post(`${API_HISTORY}/${USER_ID}/history/${encodeURIComponent(serieId)}`);
-}
+const API_SERIES = "/series";
+const API_SERIES_ADD = "/series/addSerie";
+const API_HISTORY = "/history";
 
 const GENRES = ["Drama", "Anime", "Sci-Fi", "Comedy", "Historical", "Mystery", "Fantasy"];
 
 export default function Search() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user } = useContext(UserContext);
 
   const [titleQuery, setTitleQuery] = useState("");
   const [genreQuery, setGenreQuery] = useState("");
   const [minEpQuery, setMinEpQuery] = useState("");
-
   const [allSeries, setAllSeries] = useState([]);
   const [selection, setSelection] = useState(null);
-
   const [title, setTitle] = useState("");
-  const [gender, setGender] = useState(""); 
+  const [gender, setGender] = useState("");
   const [nbEpisodes, setNbEpisodes] = useState("");
   const [note, setNote] = useState("");
 
   async function fetchAll() {
     try {
-      const res = await axios.get(API_SERIES);
+      const res = await api.get(API_SERIES);
       setAllSeries(Array.isArray(res.data) ? res.data : []);
     } catch {
       setAllSeries([]);
     }
   }
 
-  const filteredSeries = useMemo(() => {
-    const t = titleQuery.trim().toLowerCase();
-    const g = genreQuery.trim().toLowerCase();
-    const minEp =
-      minEpQuery !== "" && !Number.isNaN(Number(minEpQuery))
-        ? Number(minEpQuery)
-        : null;
-
-    return allSeries.filter((s) => {
-      const titleOk = t === "" ? true : (s?.title || "").toLowerCase().includes(t);
-
-      const serieGenre = String(s?.gender || "").trim().toLowerCase();
-      const genreOk = g === "" ? true : serieGenre === g;
-
-      const epOk = minEp === null ? true : Number(s?.nbEpisodes ?? NaN) >= minEp;
-
-      return titleOk && genreOk && epOk;
-    });
-  }, [allSeries, titleQuery, genreQuery, minEpQuery]);
+  async function pushHistory(serieId) {
+    if (!serieId || !user?.id || !user?.token) return;
+    try {
+      await api.post(`${API_HISTORY}/${user.id}/history/${serieId}`);
+    } catch {}
+  }
 
   async function onCreer() {
     const obj = {
@@ -65,17 +56,19 @@ export default function Search() {
       note: note.trim(),
     };
     if (obj.title === "" || obj.gender === "" || Number.isNaN(obj.nbEpisodes)) {
-      alert("Remplis Titre, Genre et Nb épisodes (nombre).");
+      alert("Remplis Titre, Genre et Nb épisodes.");
+      return;
+    }
+    if (!user?.token) {
+      alert("Connecte-toi pour ajouter une série.");
+      navigate("/Login");
       return;
     }
     try {
-      await axios.post(`${API_SERIES}/addSerie`, obj);
+      await api.post(API_SERIES_ADD, obj);
       alert("Nouvelle série créée !");
-      setTitle("");
-      setGender("");
-      setNbEpisodes("");
-      setNote("");
-      await fetchAll();
+      setTitle(""); setGender(""); setNbEpisodes(""); setNote("");
+      fetchAll();
     } catch {
       alert("Erreur lors de la création de la série.");
     }
@@ -83,7 +76,7 @@ export default function Search() {
 
   async function onChoisir(serie) {
     setSelection(serie);
-    try { await pushHistory(serie.id); } catch {}
+    await pushHistory(serie.id);
   }
 
   function resetFilters() {
@@ -93,170 +86,130 @@ export default function Search() {
     setSelection(null);
   }
 
-  useEffect(() => {
-    fetchAll();
-  }, []);
+  const filteredSeries = useMemo(() => {
+    const t = titleQuery.trim().toLowerCase();
+    const g = genreQuery.trim().toLowerCase();
+    const minEp = minEpQuery !== "" ? Number(minEpQuery) : null;
+    return allSeries.filter((s) => {
+      const titleOk = t === "" ? true : (s?.title || "").toLowerCase().includes(t);
+      const genreVal = (s?.gender ?? s?.genre ?? "").toLowerCase();
+      const genreOk = g === "" ? true : genreVal === g;
+      const epOk = minEp === null ? true : (s?.nbEpisodes ?? 0) >= minEp;
+      return titleOk && genreOk && epOk;
+    });
+  }, [allSeries, titleQuery, genreQuery, minEpQuery]);
+
+  useEffect(() => { fetchAll(); }, []);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const q = params.get("q") || "";
-    setTitleQuery(q);
+    setTitleQuery(params.get("q") || "");
   }, [location.search]);
 
+  const darkStyle = {
+    background: "linear-gradient(180deg, #0f0a1f 0%, #0c081a 100%)",
+    color: "#ece7ff",
+    minHeight: "100vh",
+    padding: 20,
+  };
+  const card = {
+    background: "#191135",
+    border: "1px solid #3a2b68",
+    borderRadius: 12,
+    padding: 16,
+    color: "#ece7ff",
+  };
+  const input = {
+    background: "#15102b",
+    color: "#ece7ff",
+    border: "1px solid #3a2b68",
+    borderRadius: 8,
+    padding: "8px 10px",
+  };
+  const button = {
+    background: "#7c4dff",
+    color: "white",
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 14px",
+    cursor: "pointer",
+  };
+
   return (
-    <div style={{ padding: 16 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <h1>Recherche & Séries</h1>
-        <div className="d-flex gap-2">
-          <Link to="/History" className="btn btn-outline-secondary">
-            Voir l’historique
-          </Link>
+    <div style={darkStyle}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+        <h1 style={{ color: "#a07bff" }}>Recherche & Séries</h1>
+        <Link to="/History" style={{ ...button, background: "#3a2b68" }}>
+          Voir l’historique
+        </Link>
+      </div>
+
+      <div style={{ ...card, marginBottom: 20 }}>
+        <h3 style={{ color: "#a07bff" }}>Filtres</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <div>
+            <label>Titre</label><br/>
+            <input style={input} value={titleQuery} onChange={(e)=>setTitleQuery(e.target.value)} placeholder="Naru..." />
+          </div>
+          <div>
+            <label>Genre</label><br/>
+            <select style={input} value={genreQuery} onChange={(e)=>setGenreQuery(e.target.value)}>
+              <option value="">-- Tous --</option>
+              {GENRES.map((g)=><option key={g}>{g}</option>)}
+            </select>
+          </div>
+          <div>
+            <label>Nb épisodes min</label><br/>
+            <input type="number" style={input} value={minEpQuery} onChange={(e)=>setMinEpQuery(e.target.value)} />
+          </div>
+          <button style={button} onClick={resetFilters}>Réinitialiser</button>
         </div>
       </div>
 
-      <h5 style={{ marginBottom: 8 }}>Rechercher une série par :</h5>
-      <div
-        className="border rounded p-3 mb-3"
-        style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}
-      >
-        <div>
-          <label style={{ fontSize: 12, padding:8}}>Titre</label>
-          <input
-            value={titleQuery}
-            onChange={(e) => setTitleQuery(e.target.value)}
-            placeholder="Naru.."
-            style={{ padding: 8, minWidth: 220 }}
-          />
-        </div>
-        <div>
-          <label style={{ fontSize: 12, padding:8}}>Genre</label>
-          <select
-          
-            value={genreQuery}
-            onChange={(e) => setGenreQuery(e.target.value)}
-            style={{ minWidth: 160 }}
-          >
-            <option value="">-- Choisir --</option>
-            {GENRES.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
+      <div style={{ ...card, marginBottom: 20 }}>
+        <h3 style={{ color: "#a07bff" }}>Ajouter une série</h3>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+          <input style={input} placeholder="Titre" value={title} onChange={(e)=>setTitle(e.target.value)} />
+          <select style={input} value={gender} onChange={(e)=>setGender(e.target.value)}>
+            <option value="">-- Genre --</option>
+            {GENRES.map((g)=><option key={g}>{g}</option>)}
           </select>
+          <input style={input} type="number" placeholder="Nb épisodes" value={nbEpisodes} onChange={(e)=>setNbEpisodes(e.target.value)} />
+          <input style={input} placeholder="Note" value={note} onChange={(e)=>setNote(e.target.value)} />
+          <button style={button} onClick={onCreer} disabled={!user?.token}>
+            Ajouter
+          </button>
         </div>
-        <div>
-          <label style={{ fontSize: 12, padding:8}}>Nb épisodes minimum</label>
-          <input
-            type="number"
-            value={minEpQuery}
-            onChange={(e) => setMinEpQuery(e.target.value)}
-            placeholder="ex: 10"
-            style={{ padding: 8, width: 140 }}
-          />
-        </div>
-        <button className="btn btn-outline-dark" onClick={resetFilters}>
-          Réinitialiser
-        </button>
       </div>
 
-      <h5 style={{ marginBottom: 8 }}>Ajouter une série :</h5>
-      <div
-        style={{
-          display: "flex",
-          gap: "8px",
-          alignItems: "flex-end",
-          flexWrap: "wrap",
-          marginBottom: "12px",
-        }}
-      >
-        <div>
-          <label style={{ fontSize: 12 ,padding:8}}>Titre</label>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            style={{ padding: 6, minWidth: 150 }}
-          />
-        </div>
-        <div>
-          <label style={{ fontSize: 12 ,padding:8}}>Genre</label>
-          <select
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-            style={{ minWidth: 160 }}
-          >
-            <option value="">-- Choisir --</option>
-            {GENRES.map((g) => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label style={{ fontSize: 12,padding:8 }}>Nb épisodes</label>
-          <input
-            type="number"
-            value={nbEpisodes}
-            onChange={(e) => setNbEpisodes(e.target.value)}
-            style={{ padding: 6, width: 110 }}
-          />
-        </div>
-        <div>
-          <label style={{ fontSize: 12,padding:8 }}>Note</label>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            style={{ padding: 6, width: 140 }}
-          />
-        </div>
-        <button className="btn btn-success" onClick={onCreer}>
-          Ajouter
-        </button>
-      </div>
-
-      <div
-        className="table-responsive"
-        style={{ maxHeight: "500px", overflowY: "auto", marginBottom: "2rem" }}
-      >
-        <table className="table align-middle table-striped">
+      <div style={{ ...card }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
-            <tr>
-              <th>ID</th>
-              <th>Titre</th>
-              <th>Genre</th>
-              <th>Nb épisodes</th>
-              <th>Note</th>
+            <tr style={{ background: "#1a1340", color: "#a07bff" }}>
+              <th style={{ padding: 8 }}>ID</th>
+              <th style={{ padding: 8 }}>Titre</th>
+              <th style={{ padding: 8 }}>Genre</th>
+              <th style={{ padding: 8 }}>Nb épisodes</th>
+              <th style={{ padding: 8 }}>Note</th>
             </tr>
           </thead>
           <tbody>
-            {filteredSeries.map((s) => {
-              const estSelectionnee = selection && selection.id === s.id;
-              return (
-                <tr
-                  key={s.id}
-                  onClick={() => onChoisir(s)}
-                  style={{
-                    cursor: "pointer",
-                    background: estSelectionnee ? "#eef" : "transparent",
-                  }}
-                  title="Clique pour sélectionner"
-                >
-                  <td>{s.id}</td>
-                  <td>{s.title}</td>
-                  <td>{s.gender}</td>
-                  <td>{s.nbEpisodes}</td>
-                  <td>{s.note}</td>
+            {filteredSeries.length === 0 ? (
+              <tr><td colSpan="5" style={{ textAlign: "center", padding: 16, color: "#bcb3e8" }}>Aucun résultat</td></tr>
+            ) : (
+              filteredSeries.map((s) => (
+                <tr key={s.id}
+                    onClick={()=>onChoisir(s)}
+                    style={{
+                      background: selection?.id===s.id ? "#3a2b68" : "transparent",
+                      cursor: "pointer",
+                    }}>
+                  <td style={{ padding: 8 }}>{s.id}</td>
+                  <td style={{ padding: 8 }}>{s.title}</td>
+                  <td style={{ padding: 8 }}>{s.gender ?? s.genre}</td>
+                  <td style={{ padding: 8 }}>{s.nbEpisodes}</td>
+                  <td style={{ padding: 8 }}>{s.note}</td>
                 </tr>
-              );
-            })}
-            {filteredSeries.length === 0 && (
-              <tr>
-                <td colSpan="5" style={{ textAlign: "center" }}>
-                  Aucun résultat
-                </td>
-              </tr>
+              ))
             )}
           </tbody>
         </table>

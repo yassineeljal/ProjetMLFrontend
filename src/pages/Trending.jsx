@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
-
-const API_TRENDING = "http://127.0.0.1:8888/series/trending";
+import { api, endpoints } from "../api";
 
 export default function Trending() {
   const [items, setItems] = useState([]);
@@ -13,10 +11,9 @@ export default function Trending() {
     setLoading(true);
     setErr("");
     try {
-      const r = await axios.get(API_TRENDING); 
+      const r = await api.get(endpoints.series.trending);
       setItems(Array.isArray(r.data) ? r.data : []);
     } catch (e) {
-      console.error(e);
       setItems([]);
       setErr("Impossible de récupérer les tendances.");
     } finally {
@@ -24,44 +21,32 @@ export default function Trending() {
     }
   }
 
-  useEffect(() => {
-    loadTrending();
-  }, []); 
+  useEffect(() => { loadTrending(); }, []);
 
   return (
-    <div className="container py-4 page" style={{ maxWidth: 1100 }}>
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h1 className="page-title m-0">Tendances</h1>
-        <div className="d-flex gap-2">
-          
-          <button className="btn btn-outline-dark" onClick={loadTrending}>
-            Rafraîchir
-          </button>
-          <Link to="/Search" className="btn btn-outline-secondary">
-            Recherche
-          </Link>
+    <div className="page-wrap">
+      <div className="page-head">
+        <h1 className="page-h1">Tendances</h1>
+        <div className="head-actions">
+          <button className="btn-ghost" onClick={loadTrending}>Rafraîchir</button>
+          <Link to="/Search" className="btn-ghost">Recherche</Link>
         </div>
       </div>
 
-      <p className="text-muted" style={{ marginTop: -8 }}>
-        Classement basé sur les 7 derniers jours
-      </p>
-
-      {err && <div className="alert alert-warning">{err}</div>}
+      <p className="page-sub">Classement basé sur les 7 derniers jours</p>
+      {err && <div className="alert-warn">{err}</div>}
 
       {loading ? (
-        <div className="text-muted">Chargement...</div>
+        <div className="empty">Chargement...</div>
       ) : items.length === 0 ? (
-        <div className="border rounded p-4 text-muted">
-          Aucune série tendance pour le moment.
-        </div>
+        <div className="table-card"><div className="empty">Aucune série tendance pour le moment.</div></div>
       ) : (
-        <div className="table-responsive">
-          <table className="table align-middle">
+        <div className="table-card">
+          <table className="nice-table">
             <thead>
               <tr>
-                <th style={{ width: 80 }}>#</th>
-                <th style={{ minWidth: 220 }}>Titre</th>
+                <th>#</th>
+                <th>Titre</th>
                 <th>Genre</th>
                 <th>Nb épisodes</th>
                 <th>Vues 7j</th>

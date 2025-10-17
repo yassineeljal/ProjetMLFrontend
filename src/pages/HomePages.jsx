@@ -4,13 +4,13 @@ import '../css/Home.css';
 
 function HomePages() {
   return (
-    <div className="home center">
-      <div className="card home-card">
-        <h1 className="page-title">HomePage</h1>
-        <p className="page-subtitle">Bienvenue sur Movie Search</p>
+    <div className="home">
+      <div className="card">
+        <h1 className="page-title">MoviesClub</h1>
+        <p className="page-subtitle">Un hub pour tes séries: recherche, tendances, recommandations et playlist.</p>
         <div className="actions">
           <Link to="/Search" className="btn primary">Rechercher une série</Link>
-          <Link to="/History" className="btn ghost">Voir l’historique</Link>
+          <Link to="/Trending" className="btn ghost">Voir les tendances</Link>
           <Link to="/PlayList" className="btn light">Voir ma Playlist</Link>
         </div>
       </div>
