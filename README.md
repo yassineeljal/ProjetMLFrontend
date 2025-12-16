@@ -1,12 +1,40 @@
-# React + Vite
+# MoviesClub - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface utilisateur du projet MoviesClub. Une application React pour gérer ses séries, suivre les tendances et obtenir des recommandations.
 
-Currently, two official plugins are available:
+## Installation et Lancement
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Fonctionnalités
+Authentification : Connexion et inscription sécurisées.
 
-## Expanding the ESLint configuration
+Recherche : Filtrage de séries par titre, genre et nombre d'épisodes.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Historique : Sauvegarde automatique des séries consultées.
+
+Tendances : Classement des séries les plus populaires (7 derniers jours).
+
+Recommandations : Suggestions personnalisées basées sur l'historique.
+
+Ajout : Interface pour créer de nouvelles séries dans la base de données.
+
+## Structure du Projet
+Organisation du code source pour faciliter la maintenance :
+
+src/pages/ : Contient les écrans principaux (Login, Search, History, Trending, Recommendations).
+
+src/components/ : Composants réutilisables (Navbar, Footer).
+
+src/context/ : UserContext.js gère l'état global de l'utilisateur (Auth & Token).
+
+src/css/ : Fichiers de styles pour l'interface.
+
+src/api.js : Configuration centrale d'Axios pour la communication avec le backend.
+
+## Auteurs
+Projet réalisé par Takfarinas, Arda, Yassine, Mehdi.
+
+   
